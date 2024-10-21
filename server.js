@@ -1,10 +1,10 @@
 const express = require("express");
 const app = express();
 const fs = require("fs");
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8000;
 
 // paste your IP address of the local network
-const HOST = "192.168.0.5";
+const HOST = "0.0.0.0";
 
 // specify the self-signed certificate for https connection
 const options = {

@@ -9,6 +9,9 @@ var form = document.querySelector("#form"),
   connectRoom = document.querySelector("#connect-room"),
   connect = document.querySelector("#connect");
 
+// Hard-coded link to your MP4 file
+const videoFilePath = "video_example.mp4"; // Replace with the actual path to your MP4 file
+
 const iceServers = {
   iceServer: {
     urls: "stun:stun.l.google.com:19302"
@@ -38,19 +41,32 @@ connect.onclick = function () {
     alert("There is no room with a given name");
     return;
   }
-  // get user media
-  navigator.mediaDevices
-    .getUserMedia({ video: true, audio: true })
-    .then(async stream => {
-      client.srcObject = stream;
-      try {
-        await client.play();
-        socket.emit("join", currentRoom);
-        localeStream = stream;
-      } catch (err) {
-        console.error(err);
-      }
+
+  // Create a video element and set the source to the MP4 file
+  const videoFile = document.createElement("video");
+  videoFile.src = videoFilePath; // Hard-coded link to your MP4 file
+  videoFile.controls = true; // Optional: add controls for the video
+  videoFile.style.display = "none"; // Hide the video element
+
+  document.body.appendChild(videoFile); // Append the video element to the body
+
+  // Play the video file
+  videoFile.play().then(() => {
+    // Create a MediaStream from the video element
+    const stream = videoFile.captureStream(); // Use captureStream to get the media stream
+    client.srcObject = stream; // Set the local video element's source to the stream
+    localeStream = stream; // Store the stream for WebRTC connection
+
+    // Add tracks to the peer connection
+    localeStream.getTracks().forEach(track => {
+      pc.addTrack(track, localeStream);
     });
+
+    socket.emit("join", currentRoom); // Join the room
+  }).catch(err => {
+    console.error("Error playing video:", err);
+  });
+
   dashboard.style.display = "none";
   stream.style.display = "block";
 };
@@ -67,8 +83,6 @@ socket.on("join", room => {
 
   pc.ontrack = addRemoteMediaStream;
   pc.onicecandidate = generateIceCandidate;
-  pc.addTrack(localeStream.getTracks()[0], localeStream);
-  pc.addTrack(localeStream.getTracks()[1], localeStream);
   pc.createOffer().then(description => {
     pc.setLocalDescription(description);
     console.log("Setting locale description:", description);
@@ -80,8 +94,6 @@ socket.on("offer", offer => {
   pc.ontrack = addRemoteMediaStream;
   pc.onicecandidate = generateIceCandidate;
   pc.setRemoteDescription(new RTCSessionDescription(offer));
-  pc.addTrack(localeStream.getTracks()[0], localeStream);
-  pc.addTrack(localeStream.getTracks()[1], localeStream);
   pc.createAnswer().then(description => {
     pc.setLocalDescription(description);
     console.log("Setting locale description", description);
